@@ -1,6 +1,6 @@
 import math
 import csv
-from numpy import mat, concatenate, vectorize, ones, multiply
+from numpy import mat, concatenate, vectorize, ones, multiply, power
 from numpy.random import rand
 
 training = [([1,1], [0]), ([1,0], [1]), ([0,1], [1]), ([0,0], [0])]
@@ -77,35 +77,62 @@ class NeuralNet(object):
         input = mat(input)
         return (input - self.mins) / (mat(self.maxs) - self.mins)
 
+    def backprop(self, sample):
+        input = mat(sample[0]).T
+        truth = mat(sample[1]).T
 
-    def train(self, samples, epochs=1000):
-        for i in range(epochs):
+        sums, outputs = self.run(input.T, verbose=True)
+        inputs = [self.normalize_input(input.T).T]
+        inputs.extend(outputs[:-1])
+        errors = []
+
+        # calculate errors at each layer
+        error = truth - outputs[-1]
+        errors.insert(0, error)
+        for weights in reversed(self.weights[1:]):
+            error = (errors[0].T * weights.T).T[1:]
+            errors.insert(0, error)
+
+        # update each set of weights
+        for i, weights in enumerate(self.weights):
+            input = inputs[i]
+            sum = sums[i]
+            error = errors[i]
+
+            adjustments = self.eta * pad(input) * multiply(error.T, dsigmoid(sum.T))
+            self.weights[i] = self.weights[i] + adjustments
+
+    def train(self, samples, validation, epochs=1000):
+
+        best_rmse = 9000000001
+        best_weights = []
+        epochs_since_best = 0
+
+        for num_epoch in range(epochs):
+
+            if epochs_since_best > 50:
+                break
+
             for s in samples:
-                input = mat(s[0]).T
-                truth = mat(s[1]).T
+                self.backprop(s)
 
-                sums, outputs = self.run(input.T, verbose=True)
-                inputs = [self.normalize_input(input.T).T]
-                inputs.extend(outputs[:-1])
-                errors = []
+            misclassified, rmse = self.test(validation, to_print=False)
+            if rmse < best_rmse:
+                best_rmse = rmse
+                best_weights = list(self.weights)
+                epochs_since_best = 0
+            else:
+                epochs_since_best += 1
 
-                # calculate errors at each layer
-                error = truth - outputs[-1]
-                errors.insert(0, error)
-                for weights in reversed(self.weights[1:]):
-                    error = (errors[0].T * weights.T).T[1:]
-                    errors.insert(0, error)
+            if num_epoch % 10 == 0:
+                print('Epoch %d, \tRMSE: %f' % (num_epoch, rmse))
 
-                # update each set of weights
-                for i, weights in enumerate(self.weights):
-                    input = inputs[i]
-                    sum = sums[i]
-                    error = errors[i]
+        self.weights = best_weights
 
-                    adjustments = self.eta * pad(input) * multiply(error.T, dsigmoid(sum.T))
-                    self.weights[i] = self.weights[i] + adjustments
+        print('\n---Final Results:---')
+        print('epochs: %d' % (num_epoch - 1))
+        self.test(validation)
 
-                print(error)
 
     def run(self, input, verbose=False):
         output = self.normalize_input(mat(input)).T
@@ -123,10 +150,25 @@ class NeuralNet(object):
         else:
             return output
 
-    def test(self, samples):
+    def test(self, samples, to_print=True):
+        error_sum = 0
+        num_miss = 0
         for s in samples:
             input = s[0]
-            output = s[1]
+            truth = s[1]
 
-            print('correct class: %d' % classify(output))
-            print('actual class: %d' % classify(self.run(input)))
+            output = self.run(input)
+
+            if classify(output) != classify(truth):
+                num_miss += 1
+            error = power(truth - output.T, 2).sum() / len(truth)
+            error_sum += error
+
+        misclassified = float(num_miss) / len(samples)
+        rmse = math.sqrt(error_sum / len(samples))
+
+        if to_print:
+            print('misclassified: %f' % misclassified)
+            print('rmse: %f' % rmse)
+
+        return misclassified, rmse
