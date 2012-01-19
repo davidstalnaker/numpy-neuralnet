@@ -1,4 +1,5 @@
 import math
+import csv
 from numpy import mat, concatenate, vectorize, ones, multiply
 from numpy.random import rand
 
@@ -16,15 +17,26 @@ train2 = [
 
 @vectorize
 def sigmoid(x):
-    return (1 / (1 + math.exp(-1 * x)))
+    if x > 25:
+        return 1.0
+    elif x < -25:
+        return 0.0
+    else:
+        return 1 / (1 + math.exp(-1 * x))
 
 @vectorize
 def dsigmoid(x):
-    return math.exp(x) / (1 + math.exp(x))**2
+    if x > 25 or x < -25:
+        return 0.0
+    else:
+        return math.exp(x) / (1 + math.exp(x))**2
 
 def pad(x):
     cols = x.shape[1]
     return concatenate((mat(ones((1,cols))), x))
+
+def classify(input):
+    return max((x,i) for i,x in enumerate(input))[1]
 
 class NeuralNet(object):
     def __init__(self, structure, eta=0.1):
@@ -39,6 +51,33 @@ class NeuralNet(object):
             out = self.structure[i + 1]
             self.weights.append(mat(rand(inp + 1, out)) * 2 - 1)
 
+    def readCSV(self, filename):
+        csvreader = csv.reader(open(filename, 'rb'), delimiter=',')
+        input = []
+        samples = []
+        for i, row in enumerate(csvreader):
+            if i % 2 == 0:
+                input = map(float, row)
+            else:
+                samples.append((input, map(float, row)))
+        return samples
+
+    def set_normalization(self, inputs):
+        self.mins = list(inputs[0])
+        self.maxs = list(inputs[0])
+
+        for input in inputs:
+            for i, x in enumerate(input):
+                if self.mins[i] > x:
+                    self.mins[i] = x
+                if self.maxs[i] < x:
+                    self.maxs[i] = x
+
+    def normalize_input(self, input):
+        input = mat(input)
+        return (input - self.mins) / (mat(self.maxs) - self.mins)
+
+
     def train(self, samples, epochs=1000):
         for i in range(epochs):
             for s in samples:
@@ -46,7 +85,7 @@ class NeuralNet(object):
                 truth = mat(s[1]).T
 
                 sums, outputs = self.run(input.T, verbose=True)
-                inputs = [input]
+                inputs = [self.normalize_input(input.T).T]
                 inputs.extend(outputs[:-1])
                 errors = []
 
@@ -69,7 +108,7 @@ class NeuralNet(object):
                 print(error)
 
     def run(self, input, verbose=False):
-        output = mat(input).T
+        output = self.normalize_input(mat(input)).T
         sums = []
         outputs = []
 
@@ -84,8 +123,10 @@ class NeuralNet(object):
         else:
             return output
 
+    def test(self, samples):
+        for s in samples:
+            input = s[0]
+            output = s[1]
 
-if __name__ == '__main__':
-    net = NeuralNet((2,3,1))
-    net.train()
-    print(net.run([1,-1]))
+            print('correct class: %d' % classify(output))
+            print('actual class: %d' % classify(self.run(input)))
