@@ -26,6 +26,17 @@ def pad(x):
 def classify(input):
     return max((x,i) for i,x in enumerate(input))[1]
 
+def readCSV(filename):
+    csvreader = csv.reader(open(filename, 'rb'), delimiter=',')
+    input = []
+    samples = []
+    for i, row in enumerate(csvreader):
+        if i % 2 == 0:
+            input = map(float, row)
+        else:
+            samples.append((input, map(float, row)))
+    return samples
+
 class NeuralNet(object):
     def __init__(self, structure, eta=0.1):
         self.structure = list(structure)
@@ -38,17 +49,6 @@ class NeuralNet(object):
             inp = self.structure[i]
             out = self.structure[i + 1]
             self.weights.append(mat(rand(inp + 1, out)) * 2 - 1)
-
-    def readCSV(self, filename):
-        csvreader = csv.reader(open(filename, 'rb'), delimiter=',')
-        input = []
-        samples = []
-        for i, row in enumerate(csvreader):
-            if i % 2 == 0:
-                input = map(float, row)
-            else:
-                samples.append((input, map(float, row)))
-        return samples
 
     def set_normalization(self, inputs):
         self.mins = list(inputs[0])
