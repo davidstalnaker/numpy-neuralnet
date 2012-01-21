@@ -23,9 +23,6 @@ def pad(x):
     cols = x.shape[1]
     return concatenate((mat(ones((1,cols))), x))
 
-def classify(input):
-    return max((x,i) for i,x in enumerate(input))[1]
-
 def readCSV(filename, delimiter=',', truth_vector=False):
     csvreader = csv.reader(open(filename, 'rb'), delimiter=delimiter)
     samples = []
@@ -46,10 +43,37 @@ def readCSV(filename, delimiter=',', truth_vector=False):
             samples.append((row[:-2], class_to_truth(int(row[-1]), num_classes)))
         return samples
 
+def scale(samples, extrema=None):
+    inputs = map(lambda x: x[0], samples)
+    outputs = map(lambda x: x[1], samples)
+
+    if extrema:
+        mins, maxs = extrema
+    else:
+        mins = list(inputs[0])
+        maxs = list(inputs[0])
+
+        for input in inputs:
+            for i, x in enumerate(input):
+                if mins[i] > x:
+                    mins[i] = x
+                if maxs[i] < x:
+                    maxs[i] = x
+
+    scaled = []
+    maxs = mat(maxs)
+    mins = mat(mins)
+    for input in inputs:
+        scaled.append((input - mins) / (maxs - mins))
+    return zip(scaled, outputs), (mins, maxs)
+
 def class_to_truth(cl, num_classes):
     truth = [0] * num_classes
     truth[cl] = 1
     return truth
+
+def truth_to_class(truth):
+    return max((x,i) for i,x in enumerate(truth))[1]
 
 class NeuralNet(object):
     def __init__(self, structure, eta=0.1):
@@ -64,27 +88,12 @@ class NeuralNet(object):
             out = self.structure[i + 1]
             self.weights.append(mat(rand(inp + 1, out)) * 2 - 1)
 
-    def set_normalization(self, inputs):
-        self.mins = list(inputs[0])
-        self.maxs = list(inputs[0])
-
-        for input in inputs:
-            for i, x in enumerate(input):
-                if self.mins[i] > x:
-                    self.mins[i] = x
-                if self.maxs[i] < x:
-                    self.maxs[i] = x
-
-    def normalize_input(self, input):
-        input = mat(input)
-        return (input - self.mins) / (mat(self.maxs) - self.mins)
-
     def backprop(self, sample):
         input = mat(sample[0]).T
         truth = mat(sample[1]).T
 
         sums, outputs = self.run(input.T, verbose=True)
-        inputs = [self.normalize_input(input.T).T]
+        inputs = [input]
         inputs.extend(outputs[:-1])
         errors = []
 
@@ -137,7 +146,7 @@ class NeuralNet(object):
 
 
     def run(self, input, verbose=False):
-        output = self.normalize_input(mat(input)).T
+        output = mat(input).T
         sums = []
         outputs = []
 
@@ -161,7 +170,7 @@ class NeuralNet(object):
 
             output = self.run(input)
 
-            if classify(output) != classify(truth):
+            if truth_to_class(output) != truth_to_class(truth):
                 num_miss += 1
             error = power(truth - output.T, 2).sum() / len(truth)
             error_sum += error
