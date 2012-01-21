@@ -26,16 +26,30 @@ def pad(x):
 def classify(input):
     return max((x,i) for i,x in enumerate(input))[1]
 
-def readCSV(filename):
-    csvreader = csv.reader(open(filename, 'rb'), delimiter=',')
-    input = []
+def readCSV(filename, delimiter=',', truth_vector=False):
+    csvreader = csv.reader(open(filename, 'rb'), delimiter=delimiter)
     samples = []
-    for i, row in enumerate(csvreader):
-        if i % 2 == 0:
-            input = map(float, row)
-        else:
-            samples.append((input, map(float, row)))
-    return samples
+
+    if truth_vector:
+        num_inputs, num_classes = map(int, csvreader.next())
+        for i, row in enumerate(csvreader):
+            row = map(float, row)
+            if len(row) == num_inputs + num_classes:
+                samples.append((row[:num_inputs], row[-1 * num_classes:]))
+            else:
+                raise Exception('invalid row size: expecting %d inputs and %d outputs, but got %d points' % (numInputs, numOutputs, len(row)))
+        return samples
+    else:
+        num_classes = int(csvreader.next()[0])
+        for i, row in enumerate(csvreader):
+            row = map(float, row)
+            samples.append((row[:-2], class_to_truth(int(row[-1]), num_classes)))
+        return samples
+
+def class_to_truth(cl, num_classes):
+    truth = [0] * num_classes
+    truth[cl] = 1
+    return truth
 
 class NeuralNet(object):
     def __init__(self, structure, eta=0.1):
