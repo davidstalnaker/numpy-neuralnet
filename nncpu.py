@@ -3,18 +3,6 @@ import csv
 from numpy import mat, concatenate, vectorize, ones, multiply, power
 from numpy.random import rand
 
-training = [([1,1], [0]), ([1,0], [1]), ([0,1], [1]), ([0,0], [0])]
-train2 = [
-    ([0.10,0.03], [1, 0]),
-    ([0.15,0.13], [1, 0]),
-    ([0.07,0.05], [1, 0]),
-    ([0.05,0.02], [1, 0]),
-    ([0.80,0.83], [0, 1]),
-    ([0.83,0.90], [0, 1]),
-    ([0.90,0.91], [0, 1]),
-    ([0.87,0.87], [0, 1])
-]
-
 @vectorize
 def sigmoid(x):
     if x > 25:
