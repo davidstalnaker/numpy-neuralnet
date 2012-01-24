@@ -1,6 +1,6 @@
 import math
-import csv
-from numpy import mat, concatenate, vectorize, ones, multiply, power
+import random
+from numpy import mat, concatenate, vectorize, ones, multiply, power, genfromtxt
 from numpy.random import rand
 
 @vectorize
@@ -23,57 +23,76 @@ def pad(x):
     cols = x.shape[1]
     return concatenate((mat(ones((1,cols))), x))
 
-def readCSV(filename, delimiter=',', truth_vector=False):
-    csvreader = csv.reader(open(filename, 'rb'), delimiter=delimiter)
-    samples = []
-
-    if truth_vector:
-        num_inputs, num_classes = map(int, csvreader.next())
-        for i, row in enumerate(csvreader):
-            row = map(float, row)
-            if len(row) == num_inputs + num_classes:
-                samples.append((row[:num_inputs], row[-1 * num_classes:]))
-            else:
-                raise Exception('invalid row size: expecting %d inputs and %d outputs, but got %d points' % (numInputs, numOutputs, len(row)))
-        return samples
+def readCSV(filename):
+    f = file(filename)
+    line = f.readline().split(',')
+    if len(line) == 2:
+        num_inputs = int(line[0])
+        num_classes = int(line[1])
     else:
-        num_classes = int(csvreader.next()[0])
-        for i, row in enumerate(csvreader):
-            row = map(float, row)
-            samples.append((row[:-2], class_to_truth(int(row[-1]), num_classes)))
-        return samples
+        print(line)
+        raise(Exception('first line of csv should contain number of inputs, number of classes'))
+
+    samples = genfromtxt(f, delimiter=',')
+
+    inputs = samples[:,:num_inputs]
+    if samples.shape[1] == num_inputs + num_classes:
+        truths = samples[:,num_inputs:]
+    elif samples.shape[1] == num_inputs + 1:
+        truths = map(lambda x: class_to_truth(x,num_classes), samples[:,-1])
+    else:
+        raise(Exception('illegal number of columns'))
+
+    return inputs, truths
+
+def read_and_normalize(filename, stats=None):
+    inputs, truth = readCSV(filename)
+    ninput, stats = normalize(inputs, stats)
+    return mat_to_samplelist(ninput, truth), stats
 
 def scale(samples, extrema=None):
-    inputs = map(lambda x: x[0], samples)
-    outputs = map(lambda x: x[1], samples)
-
     if extrema:
         mins, maxs = extrema
     else:
-        mins = list(inputs[0])
-        maxs = list(inputs[0])
+        maxs = samples.max(0)
+        mins = samples.min(0)
 
-        for input in inputs:
-            for i, x in enumerate(input):
-                if mins[i] > x:
-                    mins[i] = x
-                if maxs[i] < x:
-                    maxs[i] = x
+    ret = (samples - mins) / (maxs - mins)
+    return ret, (mins, maxs)
 
-    scaled = []
-    maxs = mat(maxs)
-    mins = mat(mins)
-    for input in inputs:
-        scaled.append((input - mins) / (maxs - mins))
-    return zip(scaled, outputs), (mins, maxs)
+def normalize(samples, stats=None):
+    if stats:
+        means, stds = stats
+    else:
+        means = samples.mean(0)
+        stds = samples.std(0)
+
+    ret = (samples - means) / stds
+    return ret, (means, stds)
 
 def class_to_truth(cl, num_classes):
     truth = [0] * num_classes
-    truth[cl] = 1
+    truth[int(cl)] = 1
     return truth
 
 def truth_to_class(truth):
     return max((x,i) for i,x in enumerate(truth))[1]
+
+def mat_to_samplelist(inputs, outputs):
+    ret = []
+    for i in range(inputs.shape[0]):
+        ret.append((inputs[i], outputs[i]))
+    return ret
+
+def split_samples(samples, split_point=0.8):
+    one = []
+    two = []
+    for s in samples:
+        if random.random() < split_point:
+            one.append(s)
+        else:
+            two.append(s)
+    return one, two
 
 class NeuralNet(object):
     def __init__(self, structure, eta=0.1):
