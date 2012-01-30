@@ -1,5 +1,6 @@
 import math
 import random
+import time
 from numpy import mat, concatenate, vectorize, ones, multiply, power, genfromtxt
 from numpy.random import rand
 
@@ -31,7 +32,8 @@ def readCSV(filename):
         num_classes = int(line[1])
     else:
         print(line)
-        raise(Exception('first line of csv should contain number of inputs, number of classes'))
+        raise(Exception('first line of csv should contain number of inputs, ' +
+                        'number of classes'))
 
     samples = genfromtxt(f, delimiter=',')
 
@@ -132,8 +134,7 @@ class NeuralNet(object):
             adjustments = self.eta * pad(input) * multiply(error.T, dsigmoid(sum.T))
             self.weights[i] = self.weights[i] + adjustments
 
-    def train(self, samples, validation, epochs=1000):
-
+    def train(self, samples, validation, epochs=500, epoch_size=1000):
         best_rmse = 9000000001
         best_weights = []
         epochs_since_best = 0
@@ -143,7 +144,7 @@ class NeuralNet(object):
             if epochs_since_best > 50:
                 break
 
-            for s in samples:
+            for s in random.sample(samples, epoch_size):
                 self.backprop(s)
 
             misclassified, rmse = self.test(validation, to_print=False)
@@ -202,3 +203,21 @@ class NeuralNet(object):
             print('rmse: %f' % rmse)
 
         return misclassified, rmse
+
+    def time_run(self, samples, num_runs=1000):
+        start = time.time()
+        for i in range(num_runs):
+            self.run(samples[i % len(samples)][0])
+        end = time.time()
+
+        print 'Total time: %f s' % (end - start)
+        print 'Average time: %f ms per run' % ((end - start) / num_runs * 1000)
+
+    def time_train(self, samples, num_runs=1000):
+        start = time.time()
+        for i in range(num_runs):
+            self.backprop(samples[i % len(samples)])
+        end = time.time()
+
+        print 'Total time: %f s' % (end - start)
+        print 'Average time: %f ms per run' % ((end - start) / num_runs * 1000)
