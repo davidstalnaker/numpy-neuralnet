@@ -1,8 +1,9 @@
 import math
 import random
 import time
-from numpy import mat, vectorize, multiply, power
+from numpy import vectorize, multiply, power, mat, concatenate, ones
 from numpy.random import rand
+from neuralnet.preprocessing import truth_to_class
 
 @vectorize
 def sigmoid(x):
@@ -19,6 +20,10 @@ def dsigmoid(x):
         return 0.0
     else:
         return math.exp(x) / (1 + math.exp(x))**2
+
+def pad(x):
+    cols = x.shape[1]
+    return concatenate((mat(ones((1,cols))), x))
 
 class NeuralNet(object):
     def __init__(self, structure, eta=0.1):
