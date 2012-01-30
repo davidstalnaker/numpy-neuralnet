@@ -68,12 +68,16 @@ class NeuralNet(object):
         best_weights = []
         epochs_since_best = 0
 
+        cur_set = samples
+
         for num_epoch in range(epochs):
 
             if epochs_since_best > 50:
                 break
 
-            for s in random.sample(samples, epoch_size):
+            if len(samples) > epoch_size:
+                cur_set = random.sample(samples, epoch_size)
+            for s in cur_set:
                 self.backprop(s)
 
             misclassified, rmse = self.test(validation, to_print=False)
