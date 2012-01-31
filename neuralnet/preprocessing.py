@@ -64,11 +64,20 @@ def mat_to_samplelist(inputs, outputs):
     return ret
 
 def split_samples(samples, split_point=0.8):
-    one = []
-    two = []
+    if type(split_point) == tuple:
+        num_splits = len(split_point)
+    else:
+        num_splits = 1
+        split_point = (split_point,)
+
+    split = tuple([[] for x in range(num_splits + 1)])
+
     for s in samples:
-        if random.random() < split_point:
-            one.append(s)
+        r = random.random()
+        for i, p in enumerate(split_point):
+            if r < p:
+                split[i].append(s)
+                break
         else:
-            two.append(s)
-    return one, two
+            split[-1].append(s)
+    return split
