@@ -99,6 +99,11 @@ class NeuralNet(object):
 
 
     def run(self, input, verbose=False):
+
+        # if input is a tuple, it is (input, output) - we want input only
+        if type(input) == tuple:
+            input = input[0]
+
         output = mat(input).T
         sums = []
         outputs = []
@@ -137,19 +142,10 @@ class NeuralNet(object):
 
         return misclassified, rmse
 
-    def time_run(self, samples, num_runs=1000):
+    def time(self, function, samples, num_runs=1000):
         start = time.time()
         for i in range(num_runs):
-            self.run(samples[i % len(samples)][0])
-        end = time.time()
-
-        print 'Total time: %f s' % (end - start)
-        print 'Average time: %f ms per run' % ((end - start) / num_runs * 1000)
-
-    def time_train(self, samples, num_runs=1000):
-        start = time.time()
-        for i in range(num_runs):
-            self.backprop(samples[i % len(samples)])
+            function(samples[i % len(samples)])
         end = time.time()
 
         print 'Total time: %f s' % (end - start)
