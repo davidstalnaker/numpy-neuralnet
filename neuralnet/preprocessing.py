@@ -1,5 +1,5 @@
 import random
-from numpy import genfromtxt
+from numpy import genfromtxt, zeros, mat
 
 def readCSV(filename):
     f = file(filename)
@@ -62,6 +62,17 @@ def mat_to_samplelist(inputs, outputs):
     for i in range(inputs.shape[0]):
         ret.append((inputs[i], outputs[i]))
     return ret
+
+def samplelist_to_mat(samples):
+    first = samples[0]
+    inputs = mat(zeros( (len(samples), len(first[0])) ))
+    outputs = mat(zeros( (len(samples), len(first[1])) ))
+
+    for i, s in enumerate(samples):
+        inputs[i] = s[0]
+        outputs[i] = s[1]
+
+    return inputs, outputs
 
 def split_samples(samples, split_point=0.8):
     if type(split_point) == tuple:
