@@ -1,5 +1,6 @@
 import random
-from numpy import genfromtxt, zeros, mat
+from numpy import genfromtxt, zeros, mat, cov
+from numpy.linalg import eig
 
 def readCSV(filename):
     f = file(filename)
@@ -73,6 +74,15 @@ def samplelist_to_mat(samples):
         outputs[i] = s[1]
 
     return inputs, outputs
+
+def gen_pca(matrix):
+    c = cov(matrix.T)
+    eigval, eigvec = eig(c)
+    return eigval, eigvec
+
+def run_pca(matrix, eigval, eigvec, num_components):
+    vecs = eigvec[:,:num_components]
+    return matrix * vecs
 
 def split_samples(samples, split_point=0.8):
     if type(split_point) == tuple:
