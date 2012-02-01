@@ -19,5 +19,8 @@ net = NeuralNet((150, 100, 10))
 
 train, val = split_samples(train)
 
+print 'Beginning Training'
 net.train(train,val)
+
+print 'Running Test'
 net.test(test)
