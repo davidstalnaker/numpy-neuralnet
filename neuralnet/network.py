@@ -5,6 +5,13 @@ from numpy import vectorize, multiply, power, mat, concatenate, ones
 from numpy.random import rand
 from neuralnet.preprocessing import truth_to_class
 
+def timef(f, *args, **kwargs):
+    start = time.time()
+    r = f(*args, **kwargs)
+    end = time.time()
+    print('Execution time: %s ms.' % ((end - start) * 1000))
+    return r
+
 @vectorize
 def sigmoid(x):
     if x > 25:
