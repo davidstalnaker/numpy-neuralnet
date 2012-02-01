@@ -1,5 +1,5 @@
 import random
-from numpy import genfromtxt, zeros, mat, cov
+from numpy import genfromtxt, zeros, mat, cov, dot
 from numpy.linalg import eig
 
 def readCSV(filename):
@@ -29,6 +29,16 @@ def read_and_normalize(filename, stats=None):
     inputs, truth = readCSV(filename)
     ninput, stats = normalize(inputs, stats)
     return mat_to_samplelist(ninput, truth), stats
+
+def utility(filename, num_components):
+    inputs, truth = readCSV(filename)
+    ninputs, stats = normalize(inputs)
+    vals, vecs = gen_pca(ninputs)
+    print(vals)
+    pca = run_pca(ninputs, vecs, num_components)
+
+    samples = mat_to_samplelist(pca, truth)
+    return split_samples(samples, (0.6,0.8))
 
 def scale(samples, extrema=None):
     if extrema:
@@ -80,9 +90,9 @@ def gen_pca(matrix):
     eigval, eigvec = eig(c)
     return eigval, eigvec
 
-def run_pca(matrix, eigval, eigvec, num_components):
+def run_pca(matrix, eigvec, num_components):
     vecs = eigvec[:,:num_components]
-    return matrix * vecs
+    return dot(matrix, vecs)
 
 def split_samples(samples, split_point=0.8):
     if type(split_point) == tuple:
