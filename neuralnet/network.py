@@ -5,6 +5,13 @@ from numpy import vectorize, multiply, power, mat, concatenate, ones
 from numpy.random import rand
 from neuralnet.preprocessing import truth_to_class
 
+def timef(f, *args, **kwargs):
+    start = time.time()
+    r = f(*args, **kwargs)
+    end = time.time()
+    print('Execution time: %s ms.' % ((end - start) * 1000))
+    return r
+
 @vectorize
 def sigmoid(x):
     if x > 25:
@@ -30,6 +37,10 @@ class NeuralNet(object):
         self.structure = list(structure)
         self.eta = eta
         self.reset_weights()
+
+    @property
+    def num_outputs(self):
+        return self.structure[-1]
 
     def reset_weights(self):
         self.weights = []
@@ -80,7 +91,7 @@ class NeuralNet(object):
             for s in cur_set:
                 self.backprop(s)
 
-            misclassified, rmse = self.test(validation, to_print=False)
+            misclassified, rmse, _ = self.test(val_set, to_print=False)
             if rmse < best_rmse:
                 best_rmse = rmse
                 best_weights = list(self.weights)
@@ -122,14 +133,19 @@ class NeuralNet(object):
     def test(self, samples, to_print=True):
         error_sum = 0
         num_miss = 0
+        confusion = [[0] * self.num_outputs for _ in range(self.num_outputs)]
         for s in samples:
             input = s[0]
             truth = s[1]
 
             output = self.run(input)
 
-            if truth_to_class(output) != truth_to_class(truth):
+            o = truth_to_class(output)
+            t = truth_to_class(truth)
+            confusion[o][t] += 1
+            if o != t:
                 num_miss += 1
+
             error = power(truth - output.T, 2).sum() / len(truth)
             error_sum += error
 
@@ -139,8 +155,10 @@ class NeuralNet(object):
         if to_print:
             print('misclassified: %f' % misclassified)
             print('rmse: %f' % rmse)
+            print('confusion:')
+            print(confusion)
 
-        return misclassified, rmse
+        return misclassified, rmse, confusion
 
     def time(self, function, samples, num_runs=1000):
         start = time.time()
