@@ -46,7 +46,7 @@ def normalize(samples, stats=None):
     else:
         means = samples.mean(0)
         stds = samples.std(0)
-
+    stds = map(lambda x: 1 if x == 0 else x, stds)
     ret = (samples - means) / stds
     return ret, (means, stds)
 
