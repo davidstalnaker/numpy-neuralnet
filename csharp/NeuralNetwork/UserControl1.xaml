@@ -1,0 +1,43 @@
+﻿<UserControl x:Class="NeuralNetwork.UserControl1"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             xmlns:chartingToolkit="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=System.Windows.Controls.DataVisualization.Toolkit"
+             d:DesignHeight="387"
+             d:DesignWidth="549">
+    <Grid>
+        <chartingToolkit:Chart Background="LightGray"
+                               HorizontalAlignment="Stretch"
+                               Name="_chart"
+                               VerticalAlignment="Stretch"
+                               Grid.ColumnSpan="3">
+            <chartingToolkit:Chart.Resources>
+                <chartingToolkit:LinearAxis x:Key="commonX"
+                                            Minimum="0"
+                                            Orientation="X" />
+            </chartingToolkit:Chart.Resources>
+            <chartingToolkit:AreaSeries Name="_triangleSeries"
+                                        DependentValueBinding="{Binding Path=Key}"
+                                        IndependentValueBinding="{Binding Path=Value}"
+                                        Title="# Triangles"
+                                        IndependentAxis="{StaticResource ResourceKey=commonX}">
+                <chartingToolkit:AreaSeries.DependentRangeAxis>
+                    <chartingToolkit:LinearAxis Minimum="0"
+                                                Orientation="Y" />
+                </chartingToolkit:AreaSeries.DependentRangeAxis>
+            </chartingToolkit:AreaSeries>
+            <chartingToolkit:AreaSeries Name="_lineSeries"
+                                        DependentValueBinding="{Binding Path=Key}"
+                                        IndependentValueBinding="{Binding Path=Value}"
+                                        Title="Results"
+                                        IndependentAxis="{StaticResource ResourceKey=commonX}">
+                <chartingToolkit:AreaSeries.DependentRangeAxis>
+                    <chartingToolkit:LinearAxis Minimum="0"
+                                                Orientation="Y" />
+                </chartingToolkit:AreaSeries.DependentRangeAxis>
+            </chartingToolkit:AreaSeries>
+        </chartingToolkit:Chart>
+    </Grid>
+</UserControl>
