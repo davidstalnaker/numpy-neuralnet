@@ -91,7 +91,7 @@ class NeuralNet(object):
             for s in cur_set:
                 self.backprop(s)
 
-            misclassified, rmse, _ = self.test(val_set, to_print=False)
+            misclassified, rmse, _ = self.test(validation, to_print=False)
             if rmse < best_rmse:
                 best_rmse = rmse
                 best_weights = list(self.weights)
