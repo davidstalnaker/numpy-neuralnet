@@ -1,52 +1,76 @@
 import pyopencl as cl
-from numpy import float32, int32, array, empty
+from numpy import float32, int32, array, empty, ndarray
 from neuralnet.network import NeuralNet
 
 kernels_file = 'neuralnet/kernels.cl'
 mf = cl.mem_flags
 
 class GpuNeuralNet(NeuralNet):
-    def __init__(self, structure, eta=0.1):
-        super(GpuNeuralNet, self).__init__(structure, eta)
+    """A massively parallelized MLP implementation."""
+
+    def __init__(self, *args, **kwargs):
+        super(GpuNeuralNet, self).__init__(*args, **kwargs)
         self.ctx = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
         self.load_program(kernels_file)
-
-    def load_program(self, filename):
-        #read in the OpenCL source file as a string
-        f = open(filename, 'r')
-        fstr = "".join(f.readlines())
-        #create the program
-        self.program = cl.Program(self.ctx, fstr).build()
-
-    def init_mem_weights(self):
-
-        #initialize client side (CPU) arrays
         self.num_input = self.structure[0]
         self.num_hidden = self.structure[1]
         self.num_output = self.structure[2]
-        self.input = array(input, dtype=float32)
-        self.in_weights = array(self.weights[0].reshape(-1), dtype=float32)
-        self.h_weights = array(self.weights[1].reshape(-1), dtype=float32)
 
-        #create OpenCL buffers
-        self.input_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.input)
-        self.in_weights_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.in_weights)
-        self.h_weights_buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.h_weights)
+    def load_program(self, filename):
+        """Creates an OpenCL program from the given OpenCL source file."""
+        program_text = open(filename, 'r').read()
+        self.program = cl.Program(self.ctx, program_text).build()
+
+    def make_buffer(self, data, flags=mf.READ_ONLY):
+        """Creates an OpenCL buffer out of the given data.
+
+        Accepts data in the form of a NumPy array/matrix or a Python list.
+
+        """
+        if not isinstance(data, ndarray) or len(data.shape) != 1 or data.dtype != float32:
+            # Convert data to a NumPy array..
+            data = array(data, dtype=float32).reshape(-1)
+        return cl.Buffer(self.ctx, mf.COPY_HOST_PTR | flags, hostbuf=data)
+
+    def init_buffers(self):
+        """Creates OpenCL buffers."""
+        self.in_weights_buf = self.make_buffer(self.weights[0])
+        self.h_weights_buf = self.make_buffer(self.weights[1])
         self.h_out_buf = cl.Buffer(self.ctx, mf.READ_WRITE, 4 * self.num_hidden)
         self.out_buf = cl.Buffer(self.ctx, mf.READ_WRITE, 4 * self.num_output)
 
-    def execute(self):
-        self.program.run(self.queue, (self.num_hidden,), None, int32(self.num_input), int32(self.num_hidden), self.input_buf, self.h_out_buf, self.in_weights_buf)
-        self.program.run(self.queue, (self.num_output,), None, int32(self.num_hidden), int32(self.num_output), self.h_out_buf, self.out_buf, self.h_weights_buf)
-#        c = empty((self.num_output,), dtype=float32)
-#        cl.enqueue_read_buffer(self.queue, self.out_buf, c).wait()
-#        print "input", self.input
-#        print "output", c
-
-
+    def feed_forward(self, input_buf, inputOffset=0):
+        self.program.feedForward(
+            self.queue,
+            (self.num_hidden,),
+            None,
+            int32(inputOffset),
+            int32(self.num_input),
+            int32(self.num_hidden),
+            input_buf,
+            self.h_out_buf,
+            self.in_weights_buf)
+        self.program.feedForward(
+            self.queue,
+            (self.num_output,),
+            None,
+            int32(0),
+            int32(self.num_hidden),
+            int32(self.num_output),
+            self.h_out_buf,
+            self.out_buf,
+            self.h_weights_buf)
+        c = empty((self.num_output,), dtype=float32)
+        cl.enqueue_read_buffer(self.queue, self.out_buf, c).wait()
+        print "output", c
 
 if __name__ == "__main__":
-    example = GpuNeuralNet((2,4,2))
-    example.init_mem([.1,.9])
-    example.execute()
+    from neuralnet import utility, samplelist_to_mat
+    train, val, test = utility('data/election/election.csv', 20)
+    gpunn = GpuNeuralNet((20,40,2))
+    gpunn.init_buffers()
+    train_mat, train_truth = samplelist_to_mat(train)
+    inputs = gpunn.make_buffer(train_mat)
+    print('cpu output: %s' % gpunn.run(train[0]).T)
+    gpunn.feed_forward(inputs, 0)

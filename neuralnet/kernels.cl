@@ -15,26 +15,27 @@ float dsigmoid(float x)
 	return e/((1+e)*(1+e));
 }
 
-__kernel void run(int numInputs,
-                  int numOutputs,
-                  __global float* input,
-                  __global float* output,
-                  __global float* weights)
+__kernel void feedForward(int inputOffset,
+                          int inputSize,
+                          int outputSize,
+                          __global float* inputs,
+                          __global float* output,
+                          __global float* weights)
 {
     int i = get_global_id(0);
     
     float sum = weights[i];
     
-    for (int j = 0; j < numInputs; j++)
+    for (int j = inputOffset * inputSize; j < (inputOffset + 1) * inputSize; j++)
     {
-        sum += weights[(j + 1) * numOutputs + i] * input[j];
+        sum += weights[(j + 1) * outputSize + i] * inputs[j];
     }
 
     output[i] = sigmoid(sum);
 }
 
-__kernel void runForTraining(int numInputs,
-                               int numOutputs,
+__kernel void runForTraining(int inputSize,
+                               int outputSize,
                                __global float* input,
                                __global float* output,
                                __global float* sums,
@@ -44,9 +45,9 @@ __kernel void runForTraining(int numInputs,
     
     float sum = weights[i];
     
-    for (int j = 0; j < numInputs; j++)
+    for (int j = 0; j < inputSize; j++)
     {
-        sum += weights[(j + 1) * numOutputs + i] * input[j];
+        sum += weights[(j + 1) * outputSize + i] * input[j];
     }
 	sums[i] = sum;
     output[i] = sigmoid(sum);

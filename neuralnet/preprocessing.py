@@ -54,7 +54,6 @@ def utility(filename, num_components):
     inputs, truth = readCSV(filename)
     ninputs, stats = normalize(inputs)
     vals, vecs = gen_pca(ninputs)
-    print(vals)
     pca = run_pca(ninputs, vecs, num_components)
 
     samples = mat_to_samplelist(pca, truth)
