@@ -6,6 +6,7 @@ from numpy.random import rand
 from neuralnet.preprocessing import truth_to_class
 
 def timef(f, *args, **kwargs):
+    """Measures the runtime of the provided function and arguments."""
     start = time.time()
     r = f(*args, **kwargs)
     end = time.time()
@@ -23,12 +24,14 @@ def sigmoid(x):
 
 @vectorize
 def dsigmoid(x):
+    """Calculates the derivative of the sigmoid of x."""
     if x > 25 or x < -25:
         return 0.0
     else:
         return math.exp(x) / (1 + math.exp(x))**2
 
 def pad(x):
+    """Adds a row of 1's to the top of a vector."""
     cols = x.shape[1]
     return concatenate((mat(ones((1,cols))), x))
 
@@ -91,7 +94,7 @@ class NeuralNet(object):
             for s in cur_set:
                 self.backprop(s)
 
-            misclassified, rmse, _ = self.test(val_set, to_print=False)
+            misclassified, rmse, _ = self.test(validation, to_print=False)
             if rmse < best_rmse:
                 best_rmse = rmse
                 best_weights = list(self.weights)
