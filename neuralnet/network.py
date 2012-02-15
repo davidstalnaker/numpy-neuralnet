@@ -3,7 +3,7 @@ import random
 import time
 from numpy import vectorize, multiply, power, mat, concatenate, ones
 from numpy.random import rand
-from neuralnet.preprocessing import truth_to_class
+from preprocessing import truth_to_class
 
 def timef(f, *args, **kwargs):
     """Measures the runtime of the provided function and arguments."""

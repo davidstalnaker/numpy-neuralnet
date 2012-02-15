@@ -1,16 +1,17 @@
+#! /usr/bin/env python
 import pyopencl as cl
 from numpy import float32, int32, array, empty, ndarray
-from neuralnet.network import NeuralNet
+from network import NeuralNet
 
-kernels_file = 'neuralnet/kernels.cl'
+default_kernels_file = 'neuralnet/kernels.cl'
 mf = cl.mem_flags
 
 class GpuNeuralNet(NeuralNet):
     """A massively parallelized MLP implementation."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, kernels_file=default_kernels_file, *args, **kwargs):
         super(GpuNeuralNet, self).__init__(*args, **kwargs)
-        self.ctx = cl.create_some_context()
+        self.ctx = cl.create_some_context(interactive=False)
         self.queue = cl.CommandQueue(self.ctx)
         self.load_program(kernels_file)
         self.num_input = self.structure[0]
@@ -66,9 +67,12 @@ class GpuNeuralNet(NeuralNet):
         print "output", c
 
 if __name__ == "__main__":
-    from neuralnet import utility, samplelist_to_mat
-    train, val, test = utility('data/election/election.csv', 20)
-    gpunn = GpuNeuralNet((20,40,2))
+    from preprocessing import utility, samplelist_to_mat
+    from sys import argv
+    filename = argv[1] if len(argv) > 1 else 'data/election/election.csv' 
+    kernels_file = argv[2] if len(argv) > 2 else None
+    train, val, test = utility(filename, 49)
+    gpunn = GpuNeuralNet(kernels_file, (49,40000,2))
     gpunn.init_buffers()
     train_mat, train_truth = samplelist_to_mat(train)
     inputs = gpunn.make_buffer(train_mat)
