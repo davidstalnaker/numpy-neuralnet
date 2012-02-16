@@ -93,6 +93,6 @@ __kernel void updateWeights(int numInputs,
 
 	for (int i = 0; i < numInputs + 1; i++)
 	{
-		weights[i * numOutputs + o] += eta * errors[o] * dsigmoid(sums[o]);
+		weights[(o * (numOutputs + 1)) + i] += eta * errors[o] * dsigmoid(sums[o]);
 	}
 }

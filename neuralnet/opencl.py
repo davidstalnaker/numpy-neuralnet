@@ -122,5 +122,28 @@ class GpuNeuralNet(NeuralNet):
             h_err_buf
         )
 
+        self.program.updateWeights(
+            self.queue,
+            (self.num_hidden, 1),
+            None,
+            int32(self.num_input),
+            int32(self.num_hidden),
+            int32(self.eta),
+            h_err_buf,
+            self.in_weights_buf,
+            h_sums_buf
+        )
+
+        self.program.updateWeights(
+            self.queue,
+            (self.num_output, 1),
+            None,
+            int32(self.num_hidden),
+            int32(self.num_output),
+            int32(self.eta),
+            out_err_buf,
+            self.h_weights_buf,
+            out_sums_buf
+        )
 
         return h_sums_buf, h_out_buf, out_sums_buf, out_buf, h_err_buf, out_err_buf
