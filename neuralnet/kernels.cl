@@ -15,23 +15,24 @@ float dsigmoid(float x)
 	return e/((1+e)*(1+e));
 }
 
-__kernel void feedForward(int inputOffset,
-                          int inputSize,
+__kernel void feedForward(int inputSize,
                           int outputSize,
                           __global float* inputs,
-                          __global float* output,
+                          __global float* outputs,
                           __global float* weights)
 {
     int i = get_global_id(0);
+    int inputOffset = get_global_id(1) * inputSize;
+    int outputOffset = get_global_id(1) * outputSize;
     
     float sum = weights[i];
     
-    for (int j = inputOffset * inputSize; j < (inputOffset + 1) * inputSize; j++)
+    for (int j = inputOffset; j < inputOffset + inputSize; j++)
     {
         sum += weights[(j + 1) * outputSize + i] * inputs[j];
     }
 
-    output[i] = sigmoid(sum);
+    outputs[outputOffset + i] = sigmoid(sum);
 }
 
 __kernel void runForTraining(int inputSize,
