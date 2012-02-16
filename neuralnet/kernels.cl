@@ -74,9 +74,11 @@ __kernel void hiddenError(int numHidden,
 {
     int h = get_global_id(0);
 
-	for (int o = 0; o < numOutputs; o++) 
+    hiddenError[h] = 0;
+
+	for (int o = 0; o < numOutputs; o++)
 	{
-		hiddenError[h] += weights[(h + 1) * numHidden + o] * outputError[o];
+		hiddenError[h] += weights[(o * (numHidden + 1)) + h + 1] * outputError[o];
 	}
 }
 
