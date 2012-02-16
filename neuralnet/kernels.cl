@@ -27,9 +27,9 @@ __kernel void feedForward(int inputSize,
     
     float sum = weights[i];
     
-    for (int j = inputOffset; j < inputOffset + inputSize; j++)
+    for (int in = 0; in < inputSize; in++)
     {
-        sum += weights[(j + 1) * outputSize + i] * inputs[j];
+        sum += weights[(in + 1) * outputSize + i] * inputs[in + inputOffset];
     }
 
     outputs[outputOffset + i] = sigmoid(sum);
