@@ -11,9 +11,9 @@ np.set_printoptions(suppress=True)
 current_dir = path.dirname(inspect.getfile(inspect.currentframe()))
 data_file = path.join(current_dir, 'data/election/election.csv')
 kernels_file = path.join(current_dir, 'neuralnet/kernels.cl')
-train, val, test = utility(data_file, 49)
+train, val, test = utility(data_file, 4)
 print('initializing...')
-gpunn = GpuNeuralNet(kernels_file, (49,400,2))
+gpunn = GpuNeuralNet(kernels_file, (4,5,2))
 print('running...')
 gpunn.init_buffers()
 train = train[:10]
@@ -27,15 +27,52 @@ cpu_output = np.empty_like(gpu_output)
 for i, x in enumerate(map(lambda x: gpunn.run(x).T, train)):
     cpu_output[i] = x
 
-percent_error = 100 * abs(gpu_output - cpu_output) / ((gpu_output + cpu_output) / 2)
+error = abs(gpu_output - cpu_output)
 
-print('percent errors of gpu feedforward outputs:')
-print(percent_error)
+print('errors of gpu feedforward outputs:')
+print(error)
 
-if np.max(percent_error) > 0.01:
+if np.max(error) > 0.001:
     print('correct (cpu) output:')
     print(cpu_output)
     print('gpu output:')
     print(gpu_output)
 else:
-    print('it\'s all good')
+    print('feedforward is good to go')
+
+sample = train[0]
+sums, outputs, errors, weights = gpunn.backprop(sample, return_values=True)
+
+print('correct (cpu) hidden sums:')
+print(sums[0].T)
+print('correct (cpu) output sums:')
+print(sums[1].T)
+print('correct (cpu) hidden outputs:')
+print(outputs[0].T)
+print('correct (cpu) outputs:')
+print(outputs[1].T)
+print('\n')
+
+h_sums_buf, h_out_buf, out_sums_buf, out_buf = gpunn.backpropGpu(sample[0], sample[1])
+
+print('gpu hidden sums:')
+print(gpunn.read_buffer(h_sums_buf))
+print('gpu output sums:')
+print(gpunn.read_buffer(out_sums_buf))
+print('gpu hidden outputs:')
+print(gpunn.read_buffer(h_out_buf))
+print('gpu outputs:')
+print(gpunn.read_buffer(out_buf))
+
+#print('correct (cpu) hidden errors:')
+#print(errors[0])
+#print('correct (cpu) output errors:')
+#print(errors[1])
+#print('correct (cpu) hidden weights:')
+#print(weights[0].T)
+#print('correct (cpu) output weights:')
+#print(weights[1].T)
+
+
+
+

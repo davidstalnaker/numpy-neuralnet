@@ -35,23 +35,26 @@ __kernel void feedForward(int inputSize,
     outputs[outputOffset + on] = sigmoid(sum);
 }
 
-__kernel void runForTraining(int inputSize,
-                               int outputSize,
-                               __global float* input,
-                               __global float* output,
-                               __global float* sums,
-                               __global float* weights)
+__kernel void feedForwardTraining(int inputSize,
+                                  int outputSize,
+                                  __global float* inputs,
+                                  __global float* outputs,
+                                  __global float* sums,
+                                  __global float* weights)
 {
-    int i = get_global_id(0);
-    
-    float sum = weights[i];
-    
-    for (int j = 0; j < inputSize; j++)
+    int on = get_global_id(0);
+    int inputOffset = get_global_id(1) * inputSize;
+    int outputOffset = get_global_id(1) * outputSize;
+
+    float sum = weights[on * (inputSize + 1)];
+
+    for (int in = 0; in < inputSize; in++)
     {
-        sum += weights[(j + 1) * outputSize + i] * input[j];
+        sum += weights[(on * (inputSize + 1)) + in + 1] * inputs[in + inputOffset];
     }
-	sums[i] = sum;
-    output[i] = sigmoid(sum);
+
+    sums[outputOffset + on] = sum;
+    outputs[outputOffset + on] = sigmoid(sum);
 }
 
 __kernel void outputError(__global float* output,

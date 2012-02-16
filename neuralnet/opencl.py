@@ -69,3 +69,35 @@ class GpuNeuralNet(NeuralNet):
             out_buf,
             self.h_weights_buf)
 
+    def backpropGpu(self, input, truth):
+        in_buf = self.make_buffer(input)
+        truth_buf = self.make_buffer(truth)
+        h_sums_buf = self.make_empty_buffer((self.num_hidden, 1))
+        h_out_buf = self.make_empty_buffer((self.num_hidden, 1))
+        out_sums_buf = self.make_empty_buffer((self.num_output, 1))
+        out_buf = self.make_empty_buffer((self.num_output, 1))
+        self.program.feedForwardTraining(
+            self.queue,
+            (self.num_hidden,1),
+            None,
+            int32(self.num_input),
+            int32(self.num_hidden),
+            in_buf,
+            h_out_buf,
+            h_sums_buf,
+            self.in_weights_buf
+        )
+        self.program.feedForwardTraining(
+            self.queue,
+            (self.num_output,1),
+            None,
+            int32(self.num_hidden),
+            int32(self.num_output),
+            h_out_buf,
+            out_buf,
+            out_sums_buf,
+            self.h_weights_buf
+        )
+
+
+        return h_sums_buf, h_out_buf, out_sums_buf, out_buf
