@@ -21,18 +21,18 @@ __kernel void feedForward(int inputSize,
                           __global float* outputs,
                           __global float* weights)
 {
-    int i = get_global_id(0);
+    int on = get_global_id(0);
     int inputOffset = get_global_id(1) * inputSize;
     int outputOffset = get_global_id(1) * outputSize;
     
-    float sum = weights[i];
+    float sum = weights[on * (inputSize + 1)];
     
     for (int in = 0; in < inputSize; in++)
     {
-        sum += weights[(in + 1) * outputSize + i] * inputs[in + inputOffset];
+        sum += weights[(on * (inputSize + 1)) + in + 1] * inputs[in + inputOffset];
     }
 
-    outputs[outputOffset + i] = sigmoid(sum);
+    outputs[outputOffset + on] = sigmoid(sum);
 }
 
 __kernel void runForTraining(int inputSize,

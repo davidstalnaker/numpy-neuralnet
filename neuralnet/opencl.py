@@ -1,7 +1,6 @@
-#! /usr/bin/env python
 import pyopencl as cl
 from numpy import float32, int32, array, empty, ndarray
-from network import NeuralNet
+from .network import NeuralNet
 
 default_kernels_file = 'neuralnet/kernels.cl'
 mf = cl.mem_flags
@@ -45,8 +44,8 @@ class GpuNeuralNet(NeuralNet):
 
     def init_buffers(self):
         """Creates OpenCL buffers."""
-        self.in_weights_buf = self.make_buffer(self.weights[0])
-        self.h_weights_buf = self.make_buffer(self.weights[1])
+        self.in_weights_buf = self.make_buffer(self.weights[0].T)
+        self.h_weights_buf = self.make_buffer(self.weights[1].T)
         self.h_out_buf = cl.Buffer(self.ctx, mf.READ_WRITE, 4 * self.num_hidden)
         self.out_buf = cl.Buffer(self.ctx, mf.READ_WRITE, 4 * self.num_output)
 
@@ -70,21 +69,3 @@ class GpuNeuralNet(NeuralNet):
             out_buf,
             self.h_weights_buf)
 
-if __name__ == "__main__":
-    from preprocessing import utility, samplelist_to_mat
-    from network import timef
-    from sys import argv
-    filename = argv[1] if len(argv) > 1 else 'data/election/election.csv'
-    kernels_file = argv[2] if len(argv) > 2 else None
-    train, val, test = utility(filename, 49)
-    gpunn = GpuNeuralNet(kernels_file, (49,400,2))
-    gpunn.init_buffers()
-    train = train[:10]
-    train_mat, train_truth = samplelist_to_mat(train)
-    inputs = gpunn.make_buffer(train_mat)
-    h_output_buf = gpunn.make_empty_buffer((len(train), gpunn.num_hidden))
-    output_buf = gpunn.make_empty_buffer((len(train), gpunn.num_output))
-    timef(gpunn.feed_forward, inputs, h_output_buf, output_buf, len(train))
-    for x in timef(lambda: [gpunn.run(x).T for x in train]):
-        print(x)
-    print(gpunn.read_buffer(output_buf).reshape(10,2))
