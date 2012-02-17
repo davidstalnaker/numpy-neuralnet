@@ -36,9 +36,9 @@ def pad(x):
     return concatenate((mat(ones((1,cols))), x))
 
 class NeuralNet(object):
-    def __init__(self, structure, eta=0.1):
+    def __init__(self, structure, learning_rate=0.1):
         self.structure = list(structure)
-        self.eta = eta
+        self.lr = learning_rate
         self.reset_weights()
 
     @property
@@ -74,7 +74,7 @@ class NeuralNet(object):
             sum = sums[i]
             error = errors[i]
 
-            adjustments = self.eta * pad(input) * multiply(error.T, dsigmoid(sum.T))
+            adjustments = self.lr * pad(input) * multiply(error.T, dsigmoid(sum.T))
             self.weights[i] = self.weights[i] + adjustments
 
         if return_values:
