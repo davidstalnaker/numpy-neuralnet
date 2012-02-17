@@ -24,9 +24,9 @@ def read_utility(filename, normalize=False, scale=False, pca=None):
     """
     data, truth = readCSV(filename)
     if normalize:
-        data, _ = normalize(data, stats)
+        data, _ = normalize_data(data)
     elif scale:
-        data, _ = scale(data, stats)
+        data, _ = scale_data(data)
     if pca:
         vals, vecs = gen_pca(data)
         data = run_pca(data, vecs, pca)
@@ -60,7 +60,7 @@ def readCSV(filename):
 
     return inputs, truths
 
-def scale(data, extrema=None):
+def scale_data(data, extrema=None):
     """Scales data values into the range 0 - 1.
 
     data: 2D matrix of inputs
@@ -77,7 +77,7 @@ def scale(data, extrema=None):
     ret = (data - mins) / (maxs - mins)
     return ret, (mins, maxs)
 
-def normalize(data, stats=None):
+def normalize_data(data, stats=None):
     """Normalizes the data into the range 0-1.
 
     data: 2D matrix of inputs
