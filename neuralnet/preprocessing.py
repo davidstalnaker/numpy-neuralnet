@@ -12,7 +12,7 @@ import random
 from numpy import genfromtxt, zeros, mat, cov, dot
 from numpy.linalg import eig
 
-def read_utility(filename, normalize=False, scale=False, pca=None):
+def read_samples(filename, normalize=False, scale=False, pca=None):
     """Reads samples from a file, optionally doing various transformations.
 
     filename:  the file to read from.
