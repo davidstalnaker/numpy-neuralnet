@@ -1,14 +1,13 @@
-from neuralnet.preprocessing import *
-from neuralnet.network import *
+from neuralnet import *
 
 print 'Reading training data'
-train, val, test = utility('data/mnistdata.csv', 150);
+train, val, test = read_samples('data/mnistdata.csv', normalize=True, pca=150)
 
 print 'Creating Network'
 net = NeuralNet((150, 100, 10))
 
 print 'Beginning Training'
-net.train(train,val)
+net.train(train, val)
 
 print 'Running Test'
 net.test(test)

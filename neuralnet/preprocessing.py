@@ -7,32 +7,50 @@ Terms:
 "samples": a Python list of (input, output) data pairs
 
 """
-
 import random
-from numpy import genfromtxt, zeros, mat, cov, dot
+
+from numpy import cov, dot, genfromtxt, mat, zeros
 from numpy.linalg import eig
 
-def read_samples(filename, normalize=False, scale=False, pca=None):
-    """Reads samples from a file, optionally doing various transformations.
+def read_samples(filenames, normalize=False, scale=False, pca=None):
+    """Reads samples from file(s), optionally doing various transformations.
 
-    filename:  the file to read from.
-    normalize: bool, whether to normalize.
-    scale:     bool, whether to scale.
-    pca:       the number of PCA components to select.
-    Returns a tuple of sample lists in a 60/20/20 split.
+    For each transformation, the information (stats/extrema/eigvecs)
+    from the first file's data is used for every successive data set.
+
+    filenames: the file to read from, or a tuple of files.
+    (optional) normalize: bool, whether to normalize.
+    (optional) scale:     bool, whether to scale.
+    (optional) pca:       the number of PCA components to select.
+
+    Returns a tuple of sample lists.  If only one file was given,
+    a 60/20/20 split is used.
 
     """
-    data, truth = readCSV(filename)
+    if isinstance(filenames, basestring):
+        filenames = [filenames]
+    data_sets, truths = zip(*map(read_csv, filenames))
+    data_sets = list(data_sets)
     if normalize:
-        data, _ = normalize_data(data)
+        stats = None
+        for i, data in enumerate(data_sets):
+            data, stats = normalize_data(data, stats)
+            data_sets[i] = data
     elif scale:
-        data, _ = scale_data(data)
+        extrema = None
+        for i, data in enumerate(data_sets):
+            data, extrema = scale_data(data, extrema)
+            data_sets[i] = data
     if pca:
-        vals, vecs = gen_pca(data)
-        data = run_pca(data, vecs, pca)
-    return split_samples(zip(data, truth), (0.6, 0.8))
+        _, eigvecs = gen_pca(data_sets[0])
+        data_sets = [run_pca(data, eigvecs, pca) for data in data_sets]
+    if len(data_sets) > 1:
+        return tuple(zip(data, truth) for data, truth
+                                      in zip(data_sets, truths))
+    else:
+        return split_samples(zip(data_sets[0], truths[0]), (0.6, 0.8))
 
-def readCSV(filename):
+def read_csv(filename):
     """Parses a CSV file.
 
     Returns: ([data inputs], [truth vectors])
