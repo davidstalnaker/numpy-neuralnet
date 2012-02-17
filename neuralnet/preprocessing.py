@@ -12,7 +12,8 @@ import random
 from numpy import cov, dot, genfromtxt, mat, zeros
 from numpy.linalg import eig
 
-def read_samples(filenames, normalize=False, scale=False, pca=None):
+def read_samples(filenames, normalize=False, scale=False,
+                 pca=None, split=(0.6, 0.8)):
     """Reads samples from file(s), optionally doing various transformations.
 
     For each transformation, the information (stats/extrema/eigvecs)
@@ -22,9 +23,10 @@ def read_samples(filenames, normalize=False, scale=False, pca=None):
     (optional) normalize: bool, whether to normalize.
     (optional) scale:     bool, whether to scale.
     (optional) pca:       the number of PCA components to select.
+    (optional) split:     if a single file is given, how to split it.
 
     Returns a tuple of sample lists.  If only one file was given,
-    a 60/20/20 split is used.
+    a 60/20/20 split is used by default.
 
     """
     if isinstance(filenames, basestring):
