@@ -10,10 +10,11 @@ from .preprocessing import truth_to_class
 def timef(f, *args, **kwargs):
     """Measures the runtime of the provided function and arguments."""
     start = time.time()
-    r = f(*args, **kwargs)
+    f(*args, **kwargs)
     end = time.time()
-    print('Execution time: %s ms.' % ((end - start) * 1000))
-    return r
+    ms = (end - start) * 1000
+    print('Execution time: %s ms.' % ms)
+    return ms
 
 @vectorize
 def sigmoid(x):
