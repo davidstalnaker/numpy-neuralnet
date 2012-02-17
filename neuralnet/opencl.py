@@ -154,5 +154,3 @@ class GpuNeuralNet(NeuralNet):
             self.h_weights_buf,
             out_sums_buf
         )
-
-        return h_sums_buf, h_out_buf, out_sums_buf, out_buf, h_err_buf, out_err_buf

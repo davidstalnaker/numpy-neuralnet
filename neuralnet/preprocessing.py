@@ -7,9 +7,9 @@ Terms:
 "samples": a Python list of (input, output) data pairs
 
 """
-
 import random
-from numpy import genfromtxt, zeros, mat, cov, dot
+
+from numpy import cov, dot, genfromtxt, mat, zeros
 from numpy.linalg import eig
 
 def read_samples(filename, normalize=False, scale=False, pca=None):
