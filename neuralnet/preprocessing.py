@@ -1,6 +1,36 @@
+"""Defines various helper functions for working with data sets.
+
+Terms:
+
+"data":    a matrix of _input_ data
+"truth":   a truth matrix (_output_ data)
+"samples": a Python list of (input, output) data pairs
+
+"""
+
 import random
 from numpy import genfromtxt, zeros, mat, cov, dot
 from numpy.linalg import eig
+
+def read_utility(filename, normalize=False, scale=False, pca=None):
+    """Reads samples from a file, optionally doing various transformations.
+
+    filename:  the file to read from.
+    normalize: bool, whether to normalize.
+    scale:     bool, whether to scale.
+    pca:       the number of PCA components to select.
+    Returns a tuple of sample lists in a 60/20/20 split.
+
+    """
+    data, truth = readCSV(filename)
+    if normalize:
+        data, _ = normalize(data, stats)
+    elif scale:
+        data, _ = scale(data, stats)
+    if pca:
+        vals, vecs = gen_pca(data)
+        data = run_pca(data, vecs, pca)
+    return split_samples(zip(data, truth), (0.6, 0.8))
 
 def readCSV(filename):
     """Parses a CSV file.
@@ -20,48 +50,20 @@ def readCSV(filename):
 
     samples = genfromtxt(f, delimiter=',')
 
-    inputs = samples[:,:num_inputs]
+    inputs = samples[:, :num_inputs]
     if samples.shape[1] == num_inputs + num_classes:
-        truths = samples[:,num_inputs:]
+        truths = samples[:, num_inputs:]
     elif samples.shape[1] == num_inputs + 1:
-        truths = map(lambda x: class_to_truth(x,num_classes), samples[:,-1])
+        truths = map(lambda x: class_to_truth(x, num_classes), samples[:, -1])
     else:
         raise(Exception('illegal number of columns'))
 
     return inputs, truths
 
-def read_and_normalize(filename, stats=None):
-    """Reads in a CSV data file and normalizes it.
+def scale(data, extrema=None):
+    """Scales data values into the range 0 - 1.
 
-    (optional) stats: (mean, variance)
-    Returns: (list of samples, (mean, variance))
-
-    """
-    inputs, truth = readCSV(filename)
-    ninput, stats = normalize(inputs, stats)
-    return mat_to_samplelist(ninput, truth), stats
-
-def utility(filename, num_components):
-    """
-
-    Reads samples from a file, normalizes them, performs PCA, and then
-    splits them into training, validation and test sets.
-
-    Returns a tuple of sample lists in a 60/20/20 split.
-
-    """
-    inputs, truth = readCSV(filename)
-    ninputs, stats = normalize(inputs)
-    vals, vecs = gen_pca(ninputs)
-    pca = run_pca(ninputs, vecs, num_components)
-
-    samples = mat_to_samplelist(pca, truth)
-    return split_samples(samples, (0.6,0.8))
-
-def scale(samples, extrema=None):
-    """Scales sample values into the range 0 - 1.
-
-    samples: 2D matrix of inputs
+    data: 2D matrix of inputs
     (optional) extrema: (mins, maxs); can be given instead of calculating.
     Returns: (scaled samples, (mins, maxs))
 
@@ -69,16 +71,16 @@ def scale(samples, extrema=None):
     if extrema:
         mins, maxs = extrema
     else:
-        maxs = samples.max(0)
-        mins = samples.min(0)
+        maxs = data.max(0)
+        mins = data.min(0)
 
-    ret = (samples - mins) / (maxs - mins)
+    ret = (data - mins) / (maxs - mins)
     return ret, (mins, maxs)
 
-def normalize(samples, stats=None):
+def normalize(data, stats=None):
     """Normalizes the data into the range 0-1.
 
-    samples: 2D matrix of inputs
+    data: 2D matrix of inputs
     (optional) stats: (mean, variance)
     Returns: (normalized samples, (means, standard deviation))
 
@@ -86,28 +88,21 @@ def normalize(samples, stats=None):
     if stats:
         means, stds = stats
     else:
-        means = samples.mean(0)
-        stds = samples.std(0)
+        means = data.mean(0)
+        stds = data.std(0)
     stds = map(lambda x: 1 if x == 0 else x, stds)
-    ret = (samples - means) / stds
+    ret = (data - means) / stds
     return ret, (means, stds)
 
-def class_to_truth(cl, num_classes):
+def class_to_truth(cls_num, num_classes):
     """Converts the class into a truth vector."""
-    truth = [0] * num_classes
-    truth[int(cl)] = 1
+    truth = zeros((num_classes,))
+    truth[int(cls_num)] = 1
     return truth
 
 def truth_to_class(truth):
     """Converts a truth vector into the class."""
     return max((x,i) for i,x in enumerate(truth))[1]
-
-def mat_to_samplelist(inputs, outputs):
-    """Converts a matrix back to a list of samples."""
-    ret = []
-    for i in range(inputs.shape[0]):
-        ret.append((inputs[i], outputs[i]))
-    return ret
 
 def samplelist_to_mat(samples):
     """Converts a list of samples into a matrix.
