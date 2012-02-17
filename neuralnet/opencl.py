@@ -1,7 +1,9 @@
+import inspect
 from os import path
 
 import pyopencl as cl
 from numpy import float32, int32, array, empty, ndarray
+
 from .network import NeuralNet
 
 current_dir = path.dirname(inspect.getfile(inspect.currentframe()))
