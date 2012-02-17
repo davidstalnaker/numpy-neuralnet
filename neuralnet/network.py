@@ -1,8 +1,10 @@
 import math
 import random
 import time
-from numpy import vectorize, multiply, power, mat, concatenate, ones, zeros
+
+from numpy import concatenate, mat, multiply, ones, power, vectorize, zeros
 from numpy.random import rand
+
 from .preprocessing import truth_to_class
 
 def timef(f, *args, **kwargs):

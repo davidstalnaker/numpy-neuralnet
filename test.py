@@ -1,11 +1,14 @@
 #! /usr/bin/env python
 
+import inspect
+from os import path
+import time
+
+import numpy as np
+
 from neuralnet.opencl import GpuNeuralNet
 from neuralnet.preprocessing import read_samples, samplelist_to_mat
-import numpy as np
-from os import path
-import inspect
-import time
+
 np.set_printoptions(suppress=True)
 
 current_dir = path.dirname(inspect.getfile(inspect.currentframe()))
