@@ -22,7 +22,7 @@ def read_samples(filename, normalize=False, scale=False, pca=None):
     Returns a tuple of sample lists in a 60/20/20 split.
 
     """
-    data, truth = readCSV(filename)
+    data, truth = read_csv(filename)
     if normalize:
         data, _ = normalize_data(data)
     elif scale:
@@ -32,7 +32,7 @@ def read_samples(filename, normalize=False, scale=False, pca=None):
         data = run_pca(data, vecs, pca)
     return split_samples(zip(data, truth), (0.6, 0.8))
 
-def readCSV(filename):
+def read_csv(filename):
     """Parses a CSV file.
 
     Returns: ([data inputs], [truth vectors])
