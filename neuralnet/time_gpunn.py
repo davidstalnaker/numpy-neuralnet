@@ -1,7 +1,7 @@
 from neuralnet import *
 
 def time_gpunn(name, csv_file, pca_num, nn_structure):
-    train, val, test = utility(csv_file, pca_num);
+    train, val, test = read_samples(csv_file, pca=pca_num);
     cpunn = NeuralNet(nn_structure)
     print '%s running sequential training.' % name
     timef(cpunn.train, train, val, epochs=100)

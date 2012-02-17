@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 from neuralnet.opencl import GpuNeuralNet
-from neuralnet.preprocessing import utility, samplelist_to_mat
+from neuralnet.preprocessing import read_samples, samplelist_to_mat
 import numpy as np
 from os import path
 import inspect
@@ -10,9 +10,10 @@ np.set_printoptions(suppress=True)
 
 current_dir = path.dirname(inspect.getfile(inspect.currentframe()))
 data_file = path.join(current_dir, 'data/election/election.csv')
-train, val, test = utility(data_file, 49)
+kernels_file = path.join(current_dir, 'neuralnet/kernels.cl')
+train, val, test = read_samples(data_file, normalize=True, pca=2)
 print('initializing...')
-gpunn = GpuNeuralNet((49,100,2))
+gpunn = GpuNeuralNet((2,3,2))
 print('running...')
 
 train_mat, train_truth = samplelist_to_mat(train)
