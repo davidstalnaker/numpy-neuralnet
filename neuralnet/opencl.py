@@ -137,7 +137,7 @@ class GpuNeuralNet(NeuralNet):
             None,
             int32(self.num_input),
             int32(self.num_hidden),
-            int32(self.eta),
+            int32(self.lr),
             h_err_buf,
             self.in_weights_buf,
             h_sums_buf
@@ -149,7 +149,7 @@ class GpuNeuralNet(NeuralNet):
             None,
             int32(self.num_hidden),
             int32(self.num_output),
-            int32(self.eta),
+            int32(self.lr),
             out_err_buf,
             self.h_weights_buf,
             out_sums_buf
