@@ -46,11 +46,11 @@ def read_samples(filenames, normalize=False, scale=False,
     if pca:
         _, eigvecs = gen_pca(data_sets[0])
         data_sets = [run_pca(data, eigvecs, pca) for data in data_sets]
-    if len(data_sets) > 1:
+    if len(data_sets) > 1 or not split:
         return tuple(zip(data, truth) for data, truth
                                       in zip(data_sets, truths))
     else:
-        return split_samples(zip(data_sets[0], truths[0]), (0.6, 0.8))
+        return split_samples(zip(data_sets[0], truths[0]), split)
 
 def read_csv(filename):
     """Parses a CSV file.
