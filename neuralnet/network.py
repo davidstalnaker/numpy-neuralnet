@@ -1,9 +1,9 @@
 import math
 import random
 import time
-from numpy import vectorize, multiply, power, mat, concatenate, ones
+from numpy import vectorize, multiply, power, mat, concatenate, ones, zeros
 from numpy.random import rand
-from preprocessing import truth_to_class
+from .preprocessing import truth_to_class
 
 def timef(f, *args, **kwargs):
     """Measures the runtime of the provided function and arguments."""
@@ -52,7 +52,7 @@ class NeuralNet(object):
             out = self.structure[i + 1]
             self.weights.append(mat(rand(inp + 1, out)) * 2 - 1)
 
-    def backprop(self, sample):
+    def backprop(self, sample, return_values=False):
         input = mat(sample[0]).T
         truth = mat(sample[1]).T
 
@@ -76,6 +76,9 @@ class NeuralNet(object):
 
             adjustments = self.eta * pad(input) * multiply(error.T, dsigmoid(sum.T))
             self.weights[i] = self.weights[i] + adjustments
+
+        if return_values:
+            return sums, outputs, errors, self.weights
 
     def train(self, samples, validation, epochs=500, epoch_size=1000):
         best_rmse = 9000000001

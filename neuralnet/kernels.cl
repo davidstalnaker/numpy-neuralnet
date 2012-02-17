@@ -15,42 +15,46 @@ float dsigmoid(float x)
 	return e/((1+e)*(1+e));
 }
 
-__kernel void feedForward(int inputOffset,
-                          int inputSize,
+__kernel void feedForward(int inputSize,
                           int outputSize,
                           __global float* inputs,
-                          __global float* output,
+                          __global float* outputs,
                           __global float* weights)
 {
-    int i = get_global_id(0);
+    int on = get_global_id(0);
+    int inputOffset = get_global_id(1) * inputSize;
+    int outputOffset = get_global_id(1) * outputSize;
     
-    float sum = weights[i];
+    float sum = weights[on * (inputSize + 1)];
     
-    for (int j = inputOffset * inputSize; j < (inputOffset + 1) * inputSize; j++)
+    for (int in = 0; in < inputSize; in++)
     {
-        sum += weights[(j + 1) * outputSize + i] * inputs[j];
+        sum += weights[(on * (inputSize + 1)) + in + 1] * inputs[in + inputOffset];
     }
 
-    output[i] = sigmoid(sum);
+    outputs[outputOffset + on] = sigmoid(sum);
 }
 
-__kernel void runForTraining(int inputSize,
-                               int outputSize,
-                               __global float* input,
-                               __global float* output,
-                               __global float* sums,
-                               __global float* weights)
+__kernel void feedForwardTraining(int inputSize,
+                                  int outputSize,
+                                  __global float* inputs,
+                                  __global float* outputs,
+                                  __global float* sums,
+                                  __global float* weights)
 {
-    int i = get_global_id(0);
-    
-    float sum = weights[i];
-    
-    for (int j = 0; j < inputSize; j++)
+    int on = get_global_id(0);
+    int inputOffset = get_global_id(1) * inputSize;
+    int outputOffset = get_global_id(1) * outputSize;
+
+    float sum = weights[on * (inputSize + 1)];
+
+    for (int in = 0; in < inputSize; in++)
     {
-        sum += weights[(j + 1) * outputSize + i] * input[j];
+        sum += weights[(on * (inputSize + 1)) + in + 1] * inputs[in + inputOffset];
     }
-	sums[i] = sum;
-    output[i] = sigmoid(sum);
+
+    sums[outputOffset + on] = sum;
+    outputs[outputOffset + on] = sigmoid(sum);
 }
 
 __kernel void outputError(__global float* output,
@@ -70,9 +74,11 @@ __kernel void hiddenError(int numHidden,
 {
     int h = get_global_id(0);
 
-	for (int o = 0; o < numOutputs; o++) 
+    hiddenError[h] = 0;
+
+	for (int o = 0; o < numOutputs; o++)
 	{
-		hiddenError[h] += weights[(h + 1) * numHidden + o] * outputError[o];
+		hiddenError[h] += weights[(o * (numHidden + 1)) + h + 1] * outputError[o];
 	}
 }
 
@@ -87,6 +93,6 @@ __kernel void updateWeights(int numInputs,
 
 	for (int i = 0; i < numInputs + 1; i++)
 	{
-		weights[i * numOutputs + o] += eta * errors[o] * dsigmoid(sums[o]);
+		weights[(o * (numOutputs + 1)) + i] += eta * errors[o] * dsigmoid(sums[o]);
 	}
 }
