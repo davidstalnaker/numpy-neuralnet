@@ -5,6 +5,7 @@ import pyopencl as cl
 from numpy import float32, int32, array, empty, ndarray
 
 from .network import NeuralNet
+from .preprocessing import samplelist_to_mat
 
 current_dir = path.dirname(inspect.getfile(inspect.currentframe()))
 kernels_file = path.join(current_dir, 'kernels.cl')
@@ -23,6 +24,7 @@ class GpuNeuralNet(NeuralNet):
         self.num_input = self.structure[0]
         self.num_hidden = self.structure[1]
         self.num_output = self.structure[2]
+        self.init_buffers()
 
     def load_program(self, filename):
         """Creates an OpenCL program from the given OpenCL source file."""
@@ -76,26 +78,36 @@ class GpuNeuralNet(NeuralNet):
             out_buf,
             self.h_weights_buf)
 
-    def backpropGpu(self, input, truth):
+    def init_backprop_buffers(self, train_samples):
+        self.train_inputs, self.train_truth = samplelist_to_mat(train_samples)
+        self.train_inputs = self.train_inputs.reshape(-1)
+        self.train_truth = self.train_truth.reshape(-1)
+        
+        self.num_samples = len(train_samples)
+        
+        self.in_buf =       self.make_buffer(self.train_inputs)
+        self.truth_buf =    self.make_buffer(self.train_truth)
+        self.h_sums_buf =   self.make_empty_buffer((self.num_hidden, 1))
+        self.h_out_buf =    self.make_empty_buffer((self.num_hidden, 1))
+        self.out_sums_buf = self.make_empty_buffer((self.num_output, 1))
+        self.out_buf =      self.make_empty_buffer((self.num_output, 1))
+        self.h_err_buf =    self.make_empty_buffer((self.num_hidden, 1))
+        self.out_err_buf =  self.make_empty_buffer((self.num_output, 1))
+        
 
-        in_buf =       self.make_buffer(input)
-        truth_buf =    self.make_buffer(truth)
-        h_sums_buf =   self.make_empty_buffer((self.num_hidden, 1))
-        h_out_buf =    self.make_empty_buffer((self.num_hidden, 1))
-        out_sums_buf = self.make_empty_buffer((self.num_output, 1))
-        out_buf =      self.make_empty_buffer((self.num_output, 1))
-        h_err_buf =    self.make_empty_buffer((self.num_hidden, 1))
-        out_err_buf =  self.make_empty_buffer((self.num_output, 1))
-
+    def backpropGpu(self, sample_num):
+        input = self.in_buf.get_sub_region(4 * self.num_input * sample_num, 4 * self.num_input)
+        truth = self.truth_buf.get_sub_region(4 * self.num_output * sample_num, 4 * self.num_output)
+        
         self.program.feedForwardTraining(
             self.queue,
             (self.num_hidden, 1),
             None,
             int32(self.num_input),
             int32(self.num_hidden),
-            in_buf,
-            h_out_buf,
-            h_sums_buf,
+            input,
+            self.h_out_buf,
+            self.h_sums_buf,
             self.in_weights_buf
         )
 
@@ -105,9 +117,9 @@ class GpuNeuralNet(NeuralNet):
             None,
             int32(self.num_hidden),
             int32(self.num_output),
-            h_out_buf,
-            out_buf,
-            out_sums_buf,
+            self.h_out_buf,
+            self.out_buf,
+            self.out_sums_buf,
             self.h_weights_buf
         )
 
@@ -115,9 +127,9 @@ class GpuNeuralNet(NeuralNet):
             self.queue,
             (self.num_output, 1),
             None,
-            out_buf,
-            truth_buf,
-            out_err_buf
+            self.out_buf,
+            truth,
+            self.out_err_buf
         )
 
         self.program.hiddenError(
@@ -126,9 +138,9 @@ class GpuNeuralNet(NeuralNet):
             None,
             int32(self.num_hidden),
             int32(self.num_output),
-            out_err_buf,
+            self.out_err_buf,
             self.h_weights_buf,
-            h_err_buf
+            self.h_err_buf
         )
 
         self.program.updateWeights(
@@ -137,10 +149,11 @@ class GpuNeuralNet(NeuralNet):
             None,
             int32(self.num_input),
             int32(self.num_hidden),
-            int32(self.lr),
-            h_err_buf,
+            float32(self.lr),
+            input,
+            self.h_err_buf,
             self.in_weights_buf,
-            h_sums_buf
+            self.h_sums_buf
         )
 
         self.program.updateWeights(
@@ -149,8 +162,9 @@ class GpuNeuralNet(NeuralNet):
             None,
             int32(self.num_hidden),
             int32(self.num_output),
-            int32(self.lr),
-            out_err_buf,
+            float32(self.lr),
+            self.h_out_buf,
+            self.out_err_buf,
             self.h_weights_buf,
-            out_sums_buf
+            self.out_sums_buf
         )
