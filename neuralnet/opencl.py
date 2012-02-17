@@ -1,15 +1,20 @@
+from os import path
+
 import pyopencl as cl
 from numpy import float32, int32, array, empty, ndarray
 from .network import NeuralNet
 
-default_kernels_file = 'neuralnet/kernels.cl'
+current_dir = path.dirname(inspect.getfile(inspect.currentframe()))
+kernels_file = path.join(current_dir, 'kernels.cl')
+
 mf = cl.mem_flags
 
 class GpuNeuralNet(NeuralNet):
     """A massively parallelized MLP implementation."""
 
-    def __init__(self, kernels_file=default_kernels_file, *args, **kwargs):
-        super(GpuNeuralNet, self).__init__(*args, **kwargs)
+    def __init__(self, structure, learning_rate=0.1):
+        assert len(structure) == 3, "Must have 3 layers."
+        super(GpuNeuralNet, self).__init__(structure, learning_rate=0.1)
         self.ctx = cl.create_some_context(interactive=False)
         self.queue = cl.CommandQueue(self.ctx)
         self.load_program(kernels_file)
