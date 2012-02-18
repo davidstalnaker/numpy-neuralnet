@@ -77,7 +77,7 @@ class GpuNeuralNet(NeuralNet):
 
         self.program.feedForward(
             self.queue,
-            (self.num_hidden,num_runs),
+            (self.num_hidden, num_runs),
             None,
             int32(self.num_input),
             int32(self.num_hidden),
@@ -115,7 +115,6 @@ class GpuNeuralNet(NeuralNet):
         self.d_in_weights_buf = self.make_empty_buffer((self.weights[0].shape[0], self.weights[0].shape[1], self.block_size))
         self.d_h_weights_buf =  self.make_empty_buffer((self.weights[1].shape[0], self.weights[1].shape[1], self.block_size))
         
-
     def gpu_backprop(self, num_runs=None):
         if num_runs == None:
             num_runs = self.num_samples
