@@ -8,20 +8,20 @@ def time_gpunn(name, filename, nn_structure, **kwargs):
     gpunn = GpuNeuralNet(nn_structure)
 
     print '%s: running CPU feed-forward.' % name
-    t1 = timef(cpunn.test, test)
+    cff = timef(cpunn.test, test)
     print '%s: loading GPU feed-forward buffers.' % name
-    t2 = timef(gpunn.init_feed_forward_buffers, test)
+    gffb = timef(gpunn.init_feed_forward_buffers, test)
     print '%s: running GPU feed-forward.' % name
-    t3 = timef(gpunn.feed_forward)
+    gff = timef(gpunn.feed_forward)
 
     print '%s: running CPU back-propagation.' % name
-    t4 = timef(run_backprop, cpunn, train, 10000)
+    cbp = timef(run_backprop, cpunn, train, 10000)
     print '%s: loading GPU back-propagation buffers.' % name
-    t5 = timef(gpunn.init_backprop_buffers, train)
+    gbpb = timef(gpunn.init_backprop_buffers, train)
     print '%s: running GPU back-propagation.' % name
-    t6 = timef(gpunn.gpu_backprop, 10000)
+    gbp = timef(gpunn.gpu_backprop, 10000)
 
-    return t1, t2, t3, t4, t5, t6
+    return cff, gffb, gff, cbp, gbpb, gbp
 
 def run_backprop(net, samples, count):
     for i in range(count):
