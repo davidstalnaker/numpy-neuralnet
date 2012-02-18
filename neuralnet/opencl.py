@@ -1,7 +1,10 @@
 import inspect
 from os import path
+try:
+    import ipdb
+except ImportError:
+    pass
 
-import ipdb
 import pyopencl as cl
 from numpy import float32, int32, array, empty, ndarray, zeros
 
