@@ -73,7 +73,7 @@ class GpuNeuralNet(NeuralNet):
 
         self.program.feedForward(
             self.queue,
-            (self.num_hidden,num_runs),
+            (self.num_hidden, num_runs),
             None,
             int32(self.num_input),
             int32(self.num_hidden),
@@ -116,7 +116,7 @@ class GpuNeuralNet(NeuralNet):
     def gpu_backprop(self, sample_num):
         input = self.in_buf.get_sub_region(4 * self.num_input * sample_num, 4 * self.num_input)
         truth = self.truth_buf.get_sub_region(4 * self.num_output * sample_num, 4 * self.num_output)
-        
+
         self.program.feedForwardTraining(
             self.queue,
             (self.num_hidden, 1),

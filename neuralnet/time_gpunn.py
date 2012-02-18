@@ -1,6 +1,7 @@
 from neuralnet import *
 
 def time_gpunn(name, filename, nn_structure, **kwargs):
+    print '%s: loading data.' % name
     train, val, test = read_samples(filename, **kwargs)
 
     cpunn = NeuralNet(nn_structure)
