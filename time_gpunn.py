@@ -15,11 +15,11 @@ def time_gpunn(name, filename, nn_structure, **kwargs):
     gff = timef(gpunn.feed_forward)
 
     print '%s: running CPU back-propagation.' % name
-    cbp = timef(run_backprop, cpunn, train, 10000)
+    cbp = timef(run_backprop, cpunn, train, len(train))
     print '%s: loading GPU back-propagation buffers.' % name
     gbpb = timef(gpunn.init_backprop_buffers, train)
     print '%s: running GPU back-propagation.' % name
-    gbp = timef(gpunn.gpu_backprop, 10000)
+    gbp = timef(gpunn.gpu_backprop)
 
     return cff, gffb, gff, cbp, gbpb, gbp
 
