@@ -1,8 +1,9 @@
 import inspect
 from os import path
 
+import ipdb
 import pyopencl as cl
-from numpy import float32, int32, array, empty, ndarray
+from numpy import float32, int32, array, empty, ndarray, zeros
 
 from .network import NeuralNet
 from .preprocessing import samplelist_to_mat
@@ -42,9 +43,12 @@ class GpuNeuralNet(NeuralNet):
             data = array(data, dtype=float32).reshape(-1)
         return cl.Buffer(self.ctx, mf.COPY_HOST_PTR | flags, hostbuf=data)
 
-    def make_empty_buffer(self, shape, flags=mf.READ_WRITE):
+    def make_empty_buffer(self, shape, flags=mf.READ_WRITE, zero=False):
         size = reduce(lambda x, y: x * y, shape)
-        return cl.Buffer(self.ctx, flags, size * 4)
+        if zero:
+            return cl.Buffer(self.ctx, mf.COPY_HOST_PTR | flags, hostbuf=zeros(size, dtype=float32))
+        else:
+            return cl.Buffer(self.ctx, flags, size * 4)
 
     def read_buffer(self, buffer):
         output = empty((buffer.size / 4,), dtype=float32)
@@ -96,93 +100,122 @@ class GpuNeuralNet(NeuralNet):
         self.train_truth = self.train_truth.reshape(-1)
 
         self.num_samples = len(train_samples)
-        self.block_size - block_size
+        self.block_size = block_size
 
-        self.in_buf =       self.make_buffer(self.train_inputs)
-        self.truth_buf =    self.make_buffer(self.train_truth)
-        self.h_sums_buf =   self.make_empty_buffer((self.num_hidden, self.block_size))
-        self.h_out_buf =    self.make_empty_buffer((self.num_hidden, self.block_size))
-        self.out_sums_buf = self.make_empty_buffer((self.num_output, self.block_size))
-        self.out_buf =      self.make_empty_buffer((self.num_output, self.block_size))
-        self.h_err_buf =    self.make_empty_buffer((self.num_hidden, self.block_size))
-        self.out_err_buf =  self.make_empty_buffer((self.num_output, self.block_size))
-        # if num_runs == None:
-        #             num_runs = self.num_samples
-        #             
-        #         for i in xrange(num_runs):
-        #             sample_num = i % self.num_samples
-        #             print(sample_num)
-
-    def gpu_backprop(self, sample_num):
-        input = self.in_buf.get_sub_region(4 * self.num_input * sample_num, 4 * self.num_input)
-        truth = self.truth_buf.get_sub_region(4 * self.num_output * sample_num, 4 * self.num_output)
+        self.in_buf =           self.make_buffer(self.train_inputs)
+        self.truth_buf =        self.make_buffer(self.train_truth)
+        self.h_sums_buf =       self.make_empty_buffer((self.num_hidden, self.block_size))
+        self.h_out_buf =        self.make_empty_buffer((self.num_hidden, self.block_size))
+        self.out_sums_buf =     self.make_empty_buffer((self.num_output, self.block_size))
+        self.out_buf =          self.make_empty_buffer((self.num_output, self.block_size))
+        self.h_err_buf =        self.make_empty_buffer((self.num_hidden, self.block_size))
+        self.out_err_buf =      self.make_empty_buffer((self.num_output, self.block_size))
+#        self.d_in_weights_buf = self.make_empty_buffer(self.weights[0].shape, zero=True)
+#        self.d_h_weights_buf =  self.make_empty_buffer(self.weights[1].shape, zero=True)
+        self.d_in_weights_buf = self.make_empty_buffer((self.weights[0].shape[0], self.weights[0].shape[1], self.block_size))
+        self.d_h_weights_buf =  self.make_empty_buffer((self.weights[1].shape[0], self.weights[1].shape[1], self.block_size))
         
-        self.program.feedForwardTraining(
-            self.queue,
-            (self.num_hidden, 1),
-            None,
-            int32(self.num_input),
-            int32(self.num_hidden),
-            input,
-            self.h_out_buf,
-            self.h_sums_buf,
-            self.in_weights_buf
-        )
 
-        self.program.feedForwardTraining(
-            self.queue,
-            (self.num_output, 1),
-            None,
-            int32(self.num_hidden),
-            int32(self.num_output),
-            self.h_out_buf,
-            self.out_buf,
-            self.out_sums_buf,
-            self.h_weights_buf
-        )
-
-        self.program.outputError(
-            self.queue,
-            (self.num_output, 1),
-            None,
-            self.out_buf,
-            truth,
-            self.out_err_buf
-        )
-
-        self.program.hiddenError(
-            self.queue,
-            (self.num_hidden, 1),
-            None,
-            int32(self.num_hidden),
-            int32(self.num_output),
-            self.out_err_buf,
-            self.h_weights_buf,
-            self.h_err_buf
-        )
-
-        self.program.updateWeights(
-            self.queue,
-            (self.num_hidden, 1),
-            None,
-            int32(self.num_input),
-            int32(self.num_hidden),
-            float32(self.lr),
-            input,
-            self.h_err_buf,
-            self.in_weights_buf,
-            self.h_sums_buf
-        )
-
-        self.program.updateWeights(
-            self.queue,
-            (self.num_output, 1),
-            None,
-            int32(self.num_hidden),
-            int32(self.num_output),
-            float32(self.lr),
-            self.h_out_buf,
-            self.out_err_buf,
-            self.h_weights_buf,
-            self.out_sums_buf
-        )
+    def gpu_backprop(self, num_runs=None):
+        if num_runs == None:
+            num_runs = self.num_samples
+        for i in xrange(num_runs / self.block_size):
+            offset = i * self.block_size
+                                
+            self.program.feedForwardTraining(
+                self.queue,
+                (self.num_hidden, self.block_size),
+                None,
+                int32(self.num_input),
+                int32(self.num_hidden),
+                int32(offset),
+                self.in_buf,
+                self.h_out_buf,
+                self.h_sums_buf,
+                self.in_weights_buf
+            )
+            
+            self.program.feedForwardTraining(
+                self.queue,
+                (self.num_output, self.block_size),
+                None,
+                int32(self.num_hidden),
+                int32(self.num_output),
+                int32(0),
+                self.h_out_buf,
+                self.out_buf,
+                self.out_sums_buf,
+                self.h_weights_buf
+            )
+            
+            self.program.outputError(
+                self.queue,
+                (self.num_output, self.block_size),
+                None,
+                int32(self.num_output),
+                int32(offset),
+                self.out_buf,
+                self.truth_buf,
+                self.out_err_buf
+            )
+            
+            self.program.hiddenError(
+                self.queue,
+                (self.num_hidden, self.block_size),
+                None,
+                int32(self.num_hidden),
+                int32(self.num_output),
+                self.out_err_buf,
+                self.h_weights_buf,
+                self.h_err_buf
+            )
+            
+            self.program.updateDeltas(
+                self.queue,
+                (self.num_hidden, self.block_size),
+                None,
+                int32(self.num_input),
+                int32(self.num_hidden),
+                float32(self.lr),
+                int32(offset),
+                self.in_buf,
+                self.h_err_buf,
+                self.d_in_weights_buf,
+                self.h_sums_buf
+            )
+            
+            self.program.updateDeltas(
+                self.queue,
+                (self.num_output, self.block_size),
+                None,
+                int32(self.num_hidden),
+                int32(self.num_output),
+                float32(self.lr),
+                int32(0),
+                self.h_out_buf,
+                self.out_err_buf,
+                self.d_h_weights_buf,
+                self.out_sums_buf
+            )
+            
+            self.program.updateWeights(
+                self.queue,
+                (self.num_input + 1, self.num_hidden),
+                None,
+                int32(self.num_input),
+                int32(self.num_hidden),
+                int32(self.block_size),
+                self.d_in_weights_buf,
+                self.in_weights_buf
+            )
+            
+            self.program.updateWeights(
+                self.queue,
+                (self.num_hidden + 1, self.num_output),
+                None,
+                int32(self.num_hidden),
+                int32(self.num_output),
+                int32(self.block_size),
+                self.d_h_weights_buf,
+                self.h_weights_buf
+            )
