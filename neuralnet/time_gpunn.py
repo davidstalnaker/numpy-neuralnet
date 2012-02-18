@@ -27,6 +27,28 @@ def run_backprop(net, samples, count):
     for i in range(count):
         net.backprop(samples[i % len(samples)])
 
+def write_times(name, times):
+    f = open(name + "_times.csv", "w")
+    for times_tuple in times:
+        f.write(",".join(map(str, times_tuple)) + "\n")
+
 if __name__ == '__main__':
-    mnist_times = time_gpunn("MNIST", "data/mnistdata.csv",
-                             (150, 100, 10), pca=150)
+    REPS = 5
+    mnist_times = [0] * REPS
+    poker_times = [0] * REPS
+    rlcp_times = [0] * REPS
+    election_times = [0] * REPS
+    for h in [5, 10, 50, 100, 200]:
+        for i in range(REPS):
+            mnist_times[i] = time_gpunn("MNIST",
+                "data/mnisttest.csv", (150, h, 10), pca=150)
+            poker_times[i] = time_gpunn("Poker Hands",
+                "data/poker-hand/training.data", (25, h, 10))
+            rlcp_times[i] = time_gpunn("RLCP",
+                "data/rlcp/train.csv", (150, h, 10))
+            election_times[i] = time_gpunn("Election",
+                "data/election/election.csv", (150, h, 10), pca=25)
+    write_times("mnist", mnist_times)
+    write_times("poker", poker_times)
+    write_times("rlcp", rlcp_times)
+    write_times("election", election_times)
