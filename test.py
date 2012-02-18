@@ -6,7 +6,10 @@ import numpy as np
 from os import path
 import inspect
 import time
-import ipdb
+try:
+    import ipdb
+except ImportError:
+    pass
 
 np.set_printoptions(suppress=True)
 
