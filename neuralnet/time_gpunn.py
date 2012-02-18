@@ -33,20 +33,20 @@ def write_times(name, times):
         f.write(",".join(map(str, times_tuple)) + "\n")
 
 if __name__ == '__main__':
-    REPS = 5
-    mnist_times = [0] * REPS
-    poker_times = [0] * REPS
-    rlcp_times = [0] * REPS
-    election_times = [0] * REPS
+    REPS = 3
+    mnist_times = [0] * REPS * 5
+    poker_times = [0] * REPS * 5
+    rlcp_times = [0] * REPS * 5
+    election_times = [0] * REPS * 5
     for h in [5, 10, 50, 100, 200]:
         for i in range(REPS):
-            mnist_times[i] = time_gpunn("MNIST",
+            mnist_times[h * REPS + i] = time_gpunn("MNIST",
                 "data/mnisttest.csv", (150, h, 10), pca=150)
-            poker_times[i] = time_gpunn("Poker Hands",
+            poker_times[h * REPS + i] = time_gpunn("Poker Hands",
                 "data/poker-hand/training.data", (25, h, 10))
-            rlcp_times[i] = time_gpunn("RLCP",
+            rlcp_times[h * REPS + i] = time_gpunn("RLCP",
                 "data/rlcp/train.csv", (150, h, 10))
-            election_times[i] = time_gpunn("Election",
+            election_times[h * REPS + i] = time_gpunn("Election",
                 "data/election/election.csv", (150, h, 10), pca=25)
     write_times("mnist", mnist_times)
     write_times("poker", poker_times)
